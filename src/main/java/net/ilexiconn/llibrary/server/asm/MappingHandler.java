@@ -62,7 +62,7 @@ public enum MappingHandler {
         String key = cls + "/" + method + desc;
         String mapping = this.methods.get(key);
         if (mapping == null) {
-            LLibraryPlugin.LOGGER.error("Failed to get method mapping for {}", key);
+            LLibraryPlugin.LOGGER.debug("Found no method mapping for {}", key);
             return method;
         }
         return mapping;
@@ -76,7 +76,7 @@ public enum MappingHandler {
         String key = cls + "/" + field;
         String mapping = this.fields.getOrDefault(key, field);
         if (mapping == null) {
-            LLibraryPlugin.LOGGER.error("Failed to get field mapping for {}", key);
+            LLibraryPlugin.LOGGER.debug("Found no field mapping for {}", key);
             return field;
         }
         return mapping;
