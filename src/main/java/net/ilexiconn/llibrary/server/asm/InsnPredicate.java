@@ -83,6 +83,12 @@ public abstract class InsnPredicate implements Predicate<MethodPatcher.Predicate
             this.name = MappingHandler.INSTANCE.getMethodMapping(owner, name, this.desc);
         }
 
+        private Method(String owner, String desc, String name) {
+            this.owner = owner;
+            this.desc = desc;
+            this.name = name;
+        }
+
         @Override
         public boolean test(MethodPatcher.PredicateData predicateData) {
             if (predicateData.node instanceof MethodInsnNode) {
@@ -91,6 +97,10 @@ public abstract class InsnPredicate implements Predicate<MethodPatcher.Predicate
             } else {
                 return false;
             }
+        }
+
+        public Method on(Object target) {
+            return new Method(MappingHandler.INSTANCE.getClassMapping(target), desc, name);
         }
     }
 
@@ -105,6 +115,12 @@ public abstract class InsnPredicate implements Predicate<MethodPatcher.Predicate
             this.name = MappingHandler.INSTANCE.getFieldMapping(owner, name);
         }
 
+        private Field(String owner, String desc, String name) {
+            this.owner = owner;
+            this.desc = desc;
+            this.name = name;
+        }
+
         @Override
         public boolean test(MethodPatcher.PredicateData predicateData) {
             if (predicateData.node instanceof FieldInsnNode) {
@@ -113,6 +129,10 @@ public abstract class InsnPredicate implements Predicate<MethodPatcher.Predicate
             } else {
                 return false;
             }
+        }
+
+        public Field on(Object target) {
+            return new Field(MappingHandler.INSTANCE.getClassMapping(target), desc, name);
         }
     }
 
