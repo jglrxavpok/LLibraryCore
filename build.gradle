@@ -135,6 +135,8 @@ task generateMappings {
         }
       }
     }
+    outputFile.getParentFile().mkdirs()
+    outputFile.createNewFile()
     new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))).withCloseable { output ->
       output.writeShort(class_mappings.size())
       class_mappings.each { name, class_mapping ->
