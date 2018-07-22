@@ -20,7 +20,6 @@ apply plugin: "maven-publish"
 
 
 import groovy.json.JsonSlurper
-import jdk.internal.dynalink.support.ClassMap
 
 def secretFile = file "secret.json"
 def secret = null
@@ -112,7 +111,7 @@ task generateMappings {
 
   def outputFile = new File("src/main/resources/llibrary.mappings")
   if (inputFile.exists()) {
-    Map<String, ClassMap> class_mappings = [:]
+    Map<String, ClassMapping> class_mappings = [:]
     inputFile.eachLine { line ->
       if (!line.startsWith("CL")) {
         def parts = line.split(" ")
