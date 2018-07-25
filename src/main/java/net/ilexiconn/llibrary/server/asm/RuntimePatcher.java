@@ -209,6 +209,18 @@ public abstract class RuntimePatcher implements IClassTransformer, Opcodes {
             @Override
             public void apply(MethodPatcher.PatchData patch, MethodNode methodNode, AbstractInsnNode location, Method method) {
                 methodNode.instructions.clear();
+                if (methodNode.tryCatchBlocks != null) {
+                    methodNode.tryCatchBlocks.clear();
+                }
+                if (methodNode.localVariables != null) {
+                    methodNode.localVariables.clear();
+                }
+                if (methodNode.visibleLocalVariableAnnotations != null) {
+                    methodNode.visibleLocalVariableAnnotations.clear();
+                }
+                if (methodNode.invisibleLocalVariableAnnotations != null) {
+                    methodNode.invisibleLocalVariableAnnotations.clear();
+                }
                 methodNode.instructions.add(method.insnList);
             }
         },
