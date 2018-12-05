@@ -1,5 +1,6 @@
 package net.ilexiconn.llibrary.server.asm;
 
+import net.ilexiconn.llibrary.server.asm.writer.PatchClassWriter;
 import net.ilexiconn.llibrary.server.core.patcher.LLibraryRuntimePatcher;
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -23,15 +24,15 @@ import java.util.function.Predicate;
 
 /**
  * Class to patch other classes at runtime. Return a class extending this class as class transformer in your coremod.
- *
+ * <p>
  * NOTES:
- *  Do NOT place the patcher in the same directory or in a subdirectory of the plugin. The plugin should also have a
- *  sorting index greater than 1001, or LLibrary will be unable to call the patcher properly!
- *  Also make sure to put 'RuntimePatcher' in the name of the class.
+ * Do NOT place the patcher in the same directory or in a subdirectory of the plugin. The plugin should also have a
+ * sorting index greater than 1001, or LLibrary will be unable to call the patcher properly!
+ * Also make sure to put 'RuntimePatcher' in the name of the class.
  *
+ * @author iLexiconn
  * @see LLibraryRuntimePatcher
  * @since 1.5.0
- * @author iLexiconn
  */
 public abstract class RuntimePatcher implements IClassTransformer, Opcodes {
     private Map<String, ClassPatcher> patcherMap = new HashMap<>();
@@ -53,9 +54,9 @@ public abstract class RuntimePatcher implements IClassTransformer, Opcodes {
         if (this.patcherMap.isEmpty()) {
             this.onInit();
         }
-        byte[] prev = bytes;
+        byte[] prevBytes = bytes;
         bytes = this.handlePatches(bytes, MappingHandler.INSTANCE.getClassMapping(transformedName));
-        if (prev != bytes) {
+        if (bytes != prevBytes) {
             this.saveBytecode(transformedName, bytes);
         }
         return bytes;

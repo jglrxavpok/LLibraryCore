@@ -29,16 +29,16 @@ if (secretFile.exists()) {
   }
 }
 
-version = "1.0.8-1.12.2"
+version = "1.0.9-1.12.2"
 group = "net.ilexiconn"
 archivesBaseName = "llibrary-core"
 sourceCompatibility = targetCompatibility = "1.8"
 
-def minecraft_mappings = "snapshot_20180503"
+def minecraft_mappings = "stable_39"
 def core_plugin = "net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin"
 
 minecraft {
-  version = "1.12.2-14.23.3.2655"
+  version = "1.12.2-14.23.5.2795"
   runDir = "minecraft"
   mappings = minecraft_mappings
 

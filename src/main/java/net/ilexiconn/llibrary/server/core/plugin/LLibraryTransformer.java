@@ -1,6 +1,6 @@
 package net.ilexiconn.llibrary.server.core.plugin;
 
-import net.ilexiconn.llibrary.server.asm.PatchClassWriter;
+import net.ilexiconn.llibrary.server.asm.writer.PatchClassWriter;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
