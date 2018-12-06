@@ -1,45 +1,129 @@
 package net.ilexiconn.llibrary.server.asm.writer;
 
+import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
+import net.minecraft.launchwrapper.Launch;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.HashSet;
 
 public class ClassHierarchy {
-    private final Node root;
+    private static Method findLoadedClass;
 
-    ClassHierarchy(Node root) {
+    static {
+        try {
+            findLoadedClass = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);
+            findLoadedClass.setAccessible(true);
+        } catch (ReflectiveOperationException e) {
+            LLibraryPlugin.LOGGER.error("Failed to get findLoadedClass method", e);
+        }
+    }
+
+    private final HierarchyNode root;
+
+    ClassHierarchy(HierarchyNode root) {
         this.root = root;
     }
 
-    public static ClassHierarchy build(Class<?> type) {
-        return new ClassHierarchy(Node.of(type));
+    public static ClassHierarchy build(String type, ClassLoader classLoader, RawClassFetcher fetcher) {
+        return new ClassHierarchy(fetchNode(type.replace('/', '.'), classLoader, fetcher));
     }
 
-    public static ClassHierarchy build(String type, ClassFetcher classFetcher) throws IOException {
-        return new ClassHierarchy(Node.of(type, classFetcher));
+    private static HierarchyNode fetchNode(String type, ClassLoader classLoader, RawClassFetcher fetcher) {
+        Class<?> loadedClass = getLoadedClass(type);
+        if (loadedClass != null) {
+            return readClassNode(loadedClass);
+        }
+
+        HierarchyNode rawClassNode = readRawClass(type, classLoader, fetcher);
+        if (rawClassNode != null) {
+            return rawClassNode;
+        }
+
+        // It's not loaded and we can't find raw bytes. Force load the class as a last option
+        try {
+            return readClassNode(classLoader.loadClass(type));
+        } catch (ClassNotFoundException e) {
+            LLibraryPlugin.LOGGER.error("Failed to force load class {}", type, e);
+        }
+
+        return new HierarchyNode(type, false);
     }
 
-    private static ClassNode read(String type, ClassFetcher fetcher) throws IOException {
+    private static HierarchyNode readClassNode(Class<?> type) {
+        HierarchyNode node = new HierarchyNode(type.getName(), type.isInterface());
+
+        Class<?> superclass = type.getSuperclass();
+        if (superclass != null) {
+            node.add(readClassNode(superclass));
+        }
+
+        Class<?>[] interfaces = type.getInterfaces();
+        for (Class<?> interfaceType : interfaces) {
+            node.add(readClassNode(interfaceType));
+        }
+
+        return node;
+    }
+
+    @Nullable
+    private static HierarchyNode readRawClass(String type, ClassLoader classLoader, RawClassFetcher fetcher) {
+        try {
+            byte[] rawBytes = fetcher.fetch(type.replace('.', '/'));
+            if (rawBytes != null) {
+                ClassNode classNode = read(rawBytes);
+                HierarchyNode node = new HierarchyNode(type, Modifier.isInterface(classNode.access));
+
+                if (classNode.superName != null) {
+                    node.add(fetchNode(classNode.superName.replace('/', '.'), classLoader, fetcher));
+                }
+
+                if (classNode.interfaces != null) {
+                    for (String interfaceType : classNode.interfaces) {
+                        node.add(fetchNode(interfaceType.replace('/', '.'), classLoader, fetcher));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LLibraryPlugin.LOGGER.error("Failed to read bytes for class {}", type, e);
+        }
+
+        return null;
+    }
+
+    private static ClassNode read(byte[] bytes) {
         ClassNode node = new ClassNode();
-        ClassReader reader = new ClassReader(fetcher.fetch(type));
+        ClassReader reader = new ClassReader(bytes);
         reader.accept(node, 0);
         return node;
     }
 
+    @Nullable
+    private static Class<?> getLoadedClass(String name) {
+        if (findLoadedClass == null) {
+            return null;
+        }
+        try {
+            return (Class<?>) findLoadedClass.invoke(Launch.classLoader, name);
+        } catch (ReflectiveOperationException e) {
+            LLibraryPlugin.LOGGER.error("Failed to find loaded class", e);
+            return null;
+        }
+    }
+
     public String findCommon(ClassHierarchy other) {
         if (other.root.instanceOf(this.root)) {
-            return this.root.type;
+            return this.root.getType();
         } else if (this.root.instanceOf(other.root)) {
-            return other.root.type;
-        } else if (this.root.isInterface || other.root.isInterface) {
+            return other.root.getType();
+        } else if (this.root.isInterface() || other.root.isInterface()) {
             return "java.lang.Object";
         }
 
-        Node node = this.root;
+        HierarchyNode node = this.root;
         do {
             node = node.getSuper();
             if (node == null) {
@@ -47,94 +131,6 @@ public class ClassHierarchy {
             }
         } while (!other.root.instanceOf(node));
 
-        return node.type;
-    }
-
-    public static class Node {
-        private final String type;
-        private final boolean isInterface;
-
-        private final Collection<Node> parents = new HashSet<>();
-        private Node superNode;
-
-        Node(String type, boolean isInterface) {
-            this.type = type;
-            this.isInterface = isInterface;
-        }
-
-        public static Node of(Class<?> type) {
-            Node node = new Node(type.getName(), type.isInterface());
-
-            Class<?> superclass = type.getSuperclass();
-            if (superclass != null) {
-                node.add(Node.of(superclass));
-            }
-
-            Class<?>[] interfaces = type.getInterfaces();
-            for (Class<?> interfaceType : interfaces) {
-                node.add(Node.of(interfaceType));
-            }
-
-            return node;
-        }
-
-        public static Node of(String type, ClassFetcher fetcher) throws IOException {
-            ClassNode classNode = read(type, fetcher);
-            Node node = new Node(type, Modifier.isInterface(classNode.access));
-
-            if (classNode.superName != null) {
-                node.add(Node.of(classNode.superName.replace('/', '.'), fetcher));
-            }
-
-            if (classNode.interfaces != null) {
-                for (String interfaceType : classNode.interfaces) {
-                    node.add(Node.of(interfaceType.replace('/', '.'), fetcher));
-                }
-            }
-
-            return node;
-        }
-
-        public void add(Node parent) {
-            if (!parent.isInterface) {
-                this.offerSuper(parent);
-            }
-            this.parents.add(parent);
-        }
-
-        private void offerSuper(Node parent) {
-            if (this.superNode != null) {
-                throw new IllegalStateException("Node cannot have more than one superclass!");
-            }
-            this.superNode = parent;
-        }
-
-        public Node getSuper() {
-            return this.superNode;
-        }
-
-        public boolean instanceOf(Node other) {
-            if (this.parents.contains(other)) {
-                return true;
-            }
-            return this.parents.stream().anyMatch(p -> p.instanceOf(other));
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof Node) {
-                return ((Node) obj).type.equals(this.type);
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return this.type.hashCode();
-        }
-    }
-
-    public interface ClassFetcher {
-        byte[] fetch(String name) throws IOException;
+        return node.getType();
     }
 }
