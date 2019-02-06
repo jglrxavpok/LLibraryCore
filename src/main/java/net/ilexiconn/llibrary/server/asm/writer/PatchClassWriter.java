@@ -1,7 +1,6 @@
 package net.ilexiconn.llibrary.server.asm.writer;
 
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
-import net.minecraft.launchwrapper.Launch;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
@@ -21,13 +20,12 @@ public class PatchClassWriter extends ClassWriter {
     @Override
     protected String getCommonSuperClass(String type1, String type2) {
         try {
-            RawClassFetcher fetcher = Launch.classLoader::getClassBytes;
-            ClassHierarchy hierarchy1 = ClassHierarchy.build(type1, Launch.classLoader, fetcher);
-            ClassHierarchy hierarchy2 = ClassHierarchy.build(type2, Launch.classLoader, fetcher);
+            ClassHierarchy hierarchy1 = HierarchyParser.INSTANCE.get(type1);
+            ClassHierarchy hierarchy2 = HierarchyParser.INSTANCE.get(type2);
 
             return hierarchy1.findCommon(hierarchy2).replace('.', '/');
-        } catch (Exception e) {
-            LLibraryPlugin.LOGGER.error("Failed to find common super class between {} and {}", type1, type2, e);
+        } catch (Throwable t) {
+            LLibraryPlugin.LOGGER.error("Failed to find common super class between {} and {}", type1, type2, t);
             return "java/lang/Object";
         }
     }
