@@ -89,7 +89,9 @@ publishing {
       artifactId project.archivesBaseName
       version project.version
 
-      from components.java
+      artifact(signJar.outputFile) {
+        builtBy signJar
+      }
       artifact sourcesJar { classifier "sources" }
       artifact javadocJar { classifier "javadoc" }
     }

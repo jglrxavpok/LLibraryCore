@@ -2,11 +2,13 @@ package net.ilexiconn.llibrary.server.asm.writer;
 
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
 import net.minecraft.launchwrapper.Launch;
+import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -72,7 +74,8 @@ public class ClassHierarchy {
     @Nullable
     private static HierarchyNode readRawClass(String type, ClassLoader classLoader, RawClassFetcher fetcher) {
         try {
-            byte[] rawBytes = fetcher.fetch(type.replace('.', '/'));
+            byte[] rawBytes = readRawBytes(type, fetcher);
+
             if (rawBytes != null) {
                 ClassNode classNode = read(rawBytes);
                 HierarchyNode node = new HierarchyNode(type, Modifier.isInterface(classNode.access));
@@ -94,10 +97,28 @@ public class ClassHierarchy {
         return null;
     }
 
+    @Nullable
+    private static byte[] readRawBytes(String type, RawClassFetcher fetcher) throws IOException {
+        String typePath = type.replace('.', '/');
+
+        byte[] rawBytes = fetcher.fetch(typePath);
+        if (rawBytes != null) {
+            return rawBytes;
+        }
+
+        ClassLoader appClassLoader = Launch.class.getClassLoader();
+        try (InputStream input = appClassLoader.getResourceAsStream(typePath + ".class")) {
+            if (input == null) {
+                return null;
+            }
+            return IOUtils.toByteArray(input);
+        }
+    }
+
     private static ClassNode read(byte[] bytes) {
         ClassNode node = new ClassNode();
         ClassReader reader = new ClassReader(bytes);
-        reader.accept(node, 0);
+        reader.accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
         return node;
     }
 
