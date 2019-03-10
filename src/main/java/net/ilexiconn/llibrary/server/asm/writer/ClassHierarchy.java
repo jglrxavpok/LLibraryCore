@@ -45,13 +45,7 @@ public class ClassHierarchy {
             return rawClassNode;
         }
 
-        // It's not loaded and we can't find raw bytes. Force load the class as a last option
-        try {
-            return readClassNode(classLoader.loadClass(type));
-        } catch (ClassNotFoundException e) {
-            LLibraryPlugin.LOGGER.error("Failed to force load class {}", type, e);
-        }
-
+        LLibraryPlugin.LOGGER.warn("Failed to fetch hierarchy node for {}. This may cause patch issues", type);
         return new HierarchyNode(type, false);
     }
 
@@ -89,6 +83,8 @@ public class ClassHierarchy {
                         node.add(fetchNode(interfaceType.replace('/', '.'), classLoader, fetcher));
                     }
                 }
+
+                return node;
             }
         } catch (IOException e) {
             LLibraryPlugin.LOGGER.error("Failed to read bytes for class {}", type, e);

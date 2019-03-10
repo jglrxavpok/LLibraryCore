@@ -29,7 +29,7 @@ if (secretFile.exists()) {
   }
 }
 
-version = "1.0.10-1.12.2"
+version = "1.0.11-1.12.2"
 group = "net.ilexiconn"
 archivesBaseName = "llibrary-core"
 sourceCompatibility = targetCompatibility = "1.8"
