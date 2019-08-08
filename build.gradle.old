@@ -1,0 +1,168 @@
+buildscript {
+  repositories {
+    jcenter()
+    maven {
+      name = "forge"
+      url = "http://files.minecraftforge.net/maven"
+    }
+    maven {
+      name = "gradle"
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+  }
+}
+
+apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: "maven-publish"
+
+
+import groovy.json.JsonSlurper
+
+def secretFile = file "secret.json"
+def secret = null
+if (secretFile.exists()) {
+  secretFile.withReader {
+    secret = new JsonSlurper().parse it
+  }
+}
+
+version = "1.0.11-1.12.2"
+group = "net.ilexiconn"
+archivesBaseName = "llibrary-core"
+sourceCompatibility = targetCompatibility = "1.8"
+
+def minecraft_mappings = "stable_39"
+def core_plugin = "net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin"
+
+minecraft {
+  version = "1.12.2-14.23.5.2795"
+  runDir = "minecraft"
+  mappings = minecraft_mappings
+
+  clientJvmArgs = ["-Dfml.coreMods.load=$core_plugin"]
+  serverJvmArgs = ["-Dfml.coreMods.load=$core_plugin"]
+}
+
+jar {
+  manifest {
+    attributes "FMLCorePlugin": core_plugin
+    attributes "Maven-Artifact": "${project.group}:${project.archivesBaseName}:${project.version}"
+    attributes "Timestamp": System.currentTimeMillis()
+  }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  classifier = "sources"
+  from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = "javadoc"
+  from javadoc.getDestinationDir()
+}
+
+task signJar(type: SignJar, dependsOn: reobfJar) {
+  if (secret) {
+    keyStore = secret.keyStore
+    alias = secret.keyStoreAlias
+    storePass = secret.keyStorePass
+    keyPass = secret.keyStoreKeyPass
+    inputFile = jar.archivePath
+    outputFile = jar.archivePath
+  }
+}
+
+build.dependsOn signJar
+
+artifacts {
+  archives sourcesJar
+  archives javadocJar
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      groupId project.group
+      artifactId project.archivesBaseName
+      version project.version
+
+      artifact(signJar.outputFile) {
+        builtBy signJar
+      }
+      artifact sourcesJar { classifier "sources" }
+      artifact javadocJar { classifier "javadoc" }
+    }
+  }
+  repositories {
+    maven {
+      credentials {
+        username secret?.username ?: ""
+        password secret?.password ?: ""
+      }
+      url secret?.url ?: ""
+    }
+  }
+}
+
+task generateMappings {
+  def mappingParts = minecraft_mappings.split("_")
+  def inputFile = new File("${System.properties["user.home"]}/.gradle/caches/minecraft/de/oceanlabs/mcp/mcp_${mappingParts[0]}/${mappingParts[1]}/${project.minecraft.version}/srgs/mcp-srg.srg")
+
+  def outputFile = new File("src/main/resources/llibrary.mappings")
+  if (inputFile.exists()) {
+    Map<String, ClassMapping> class_mappings = [:]
+    inputFile.eachLine { line ->
+      if (!line.startsWith("CL")) {
+        def parts = line.split(" ")
+        if (parts.length >= 2) {
+          def mcp = getName(parts[1])
+          def class_name = getClassName(parts[1])
+          def class_mapping = class_mappings.get(class_name)
+          if (!class_mapping) {
+            class_mapping = new ClassMapping()
+            class_mappings.put(class_name, class_mapping)
+          }
+          if (line.startsWith("FD")) {
+            def srg = getName(parts[2])
+            class_mapping.fields.add("$mcp=$srg")
+          } else if (line.startsWith("MD")) {
+            def desc = parts[2]
+            def srg = getName(parts[3])
+            class_mapping.methods.add("$mcp$desc=$srg")
+          }
+        }
+      }
+    }
+    outputFile.getParentFile().mkdirs()
+    outputFile.createNewFile()
+    new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))).withCloseable { output ->
+      output.writeShort(class_mappings.size())
+      class_mappings.each { name, class_mapping ->
+        output.writeUTF(name)
+        output.writeShort(class_mapping.fields.size())
+        output.writeShort(class_mapping.methods.size())
+        class_mapping.fields.each { output.writeUTF(it) }
+        class_mapping.methods.each { output.writeUTF(it) }
+      }
+    }
+  }
+}
+
+compileJava.dependsOn generateMappings
+decompileMc.dependsOn generateMappings
+
+static String getClassName(String srg) {
+  return srg.substring(0, srg.lastIndexOf('/'))
+}
+
+static String getName(String srg) {
+  return srg.substring(srg.lastIndexOf('/') + 1, srg.length())
+}
+
+class ClassMapping {
+  public final List<String> fields = []
+  public final List<String> methods = []
+}

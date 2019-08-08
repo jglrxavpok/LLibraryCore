@@ -1,9 +1,9 @@
 package net.ilexiconn.llibrary.server.core.api;
 
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
+import net.minecraft.client.renderer.model.ItemCameraTransforms;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -12,13 +12,13 @@ import java.util.Map;
  * Handles calls from LLibrary Core to LLibrary
  */
 public interface LLibraryCoreAPI {
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     void addRemoteLocalizations(String language, Map<String, String> properties);
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     void provideStackContext(@Nonnull ItemStack stack);
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     void providePerspectiveContext(@Nonnull ItemCameraTransforms.TransformType transform);
 
     long getTickRate();

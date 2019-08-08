@@ -7,38 +7,38 @@ import net.ilexiconn.llibrary.client.event.RenderArmEvent;
 import net.ilexiconn.llibrary.server.core.api.LLibraryCoreAPI;
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.model.ModelBiped;
-import net.minecraft.client.model.ModelPlayer;
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.entity.RenderLivingBase;
 import net.minecraft.client.renderer.entity.RenderPlayer;
+import net.minecraft.client.renderer.entity.model.ModelBiped;
+import net.minecraft.client.renderer.entity.model.ModelPlayer;
+import net.minecraft.client.renderer.model.ItemCameraTransforms;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHandSide;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Map;
 
 public class LLibraryHooks {
     public static float prevRenderViewDistance = 4.0F;
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public static void addRemoteLocalizations(String language, Map<String, String> properties) {
         LLibraryHooks.getAPI().addRemoteLocalizations(language, properties);
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public static void provideStackContext(ItemStack stack) {
         if (stack != null) {
             LLibraryHooks.getAPI().provideStackContext(stack);
         }
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public static void providePerspectiveContext(ItemCameraTransforms.TransformType transforms) {
         LLibraryHooks.getAPI().providePerspectiveContext(transforms);
     }
@@ -55,7 +55,7 @@ public class LLibraryHooks {
         return LLibraryPlugin.api;
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void renderArmPre(RenderPlayer renderPlayer, AbstractClientPlayer player, EnumHandSide side) {
         ModelPlayer modelPlayer = renderPlayer.getMainModel();
@@ -70,7 +70,7 @@ public class LLibraryHooks {
         }
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void renderArmPost(RenderPlayer renderPlayer, AbstractClientPlayer player, EnumHandSide side) {
         ModelPlayer modelPlayer = renderPlayer.getMainModel();
@@ -84,7 +84,7 @@ public class LLibraryHooks {
         }
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static ModelBiped assignModel(RenderPlayer renderPlayer, ModelBiped model, boolean smallArms) {
         PlayerModelEvent.Assign event = new PlayerModelEvent.Assign(renderPlayer, model, smallArms);
@@ -92,7 +92,7 @@ public class LLibraryHooks {
         return event.getModel();
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void setRotationAngles(ModelBiped model, Entity entity, float limbSwing, float limbSwingAmount, float rotation, float rotationYaw, float rotationPitch, float scale) {
         if (entity instanceof EntityPlayer) {
@@ -100,7 +100,7 @@ public class LLibraryHooks {
         }
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void renderModel(ModelBiped model, Entity entity, float limbSwing, float limbSwingAmount, float rotation, float rotationYaw, float rotationPitch, float scale) {
         if (entity instanceof EntityPlayer) {
@@ -108,13 +108,13 @@ public class LLibraryHooks {
         }
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void constructModel(ModelPlayer model) {
         MinecraftForge.EVENT_BUS.post(new PlayerModelEvent.Construct(model));
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static float getViewDistance(Entity entity, float partialTicks) {
         PlayerViewDistanceEvent event = new PlayerViewDistanceEvent(entity, partialTicks, 4.0);
@@ -124,13 +124,13 @@ public class LLibraryHooks {
         return distance;
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void applyRotationsPre(RenderLivingBase<EntityLivingBase> renderer, EntityLivingBase entity, float partialTicks) {
         MinecraftForge.EVENT_BUS.post(new ApplyRenderRotationsEvent.Pre(renderer, entity, partialTicks));
     }
 
-    @SideOnly(Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SuppressWarnings("unused")
     public static void applyRotationsPost(RenderLivingBase<EntityLivingBase> renderer, EntityLivingBase entity, float partialTicks) {
         MinecraftForge.EVENT_BUS.post(new ApplyRenderRotationsEvent.Post(renderer, entity, partialTicks));

@@ -1,22 +1,18 @@
 package net.ilexiconn.llibrary.server.asm;
 
-import net.ilexiconn.llibrary.server.asm.writer.PatchClassWriter;
+import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import net.ilexiconn.llibrary.server.core.patcher.LLibraryRuntimePatcher;
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
-import net.minecraft.launchwrapper.IClassTransformer;
 import org.apache.commons.io.IOUtils;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.LdcInsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +30,7 @@ import java.util.function.Predicate;
  * @see LLibraryRuntimePatcher
  * @since 1.5.0
  */
-public abstract class RuntimePatcher implements IClassTransformer, Opcodes {
+public abstract class RuntimePatcher implements ILaunchPluginService, Opcodes {
     private Map<String, ClassPatcher> patcherMap = new HashMap<>();
 
     public RuntimePatcher() {
@@ -47,33 +43,37 @@ public abstract class RuntimePatcher implements IClassTransformer, Opcodes {
     public abstract void onInit();
 
     @Override
-    public byte[] transform(String name, String transformedName, byte[] bytes) {
-        if (bytes == null) {
-            return null;
-        }
+    public ClassNode processClass(ClassNode classNode, Type classType) {
+        ClassPatcher patcher = this.patcherMap.get(MappingHandler.INSTANCE.getClassMapping(classType.getClassName()));
+        patcher.handlePatches(classNode);
+
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        classNode.accept(writer);
+        byte[] bytes = writer.toByteArray();
+        saveBytecode(classType.getClassName(), bytes);
+        return classNode;
+    }
+
+    @Override
+    public String name() {
+        return "RuntimePatcher, LLibrary Core";
+    }
+
+    @Override
+    public void addResource(Path resource, String name) {
         if (this.patcherMap.isEmpty()) {
             this.onInit();
         }
-        byte[] prevBytes = bytes;
-        bytes = this.handlePatches(bytes, MappingHandler.INSTANCE.getClassMapping(transformedName));
-        if (bytes != prevBytes) {
-            this.saveBytecode(transformedName, bytes);
-        }
-        return bytes;
     }
 
-    private byte[] handlePatches(byte[] bytes, String cls) {
-        ClassPatcher patcher = this.patcherMap.get(cls);
-        if (patcher != null) {
-            ClassReader classReader = new ClassReader(bytes);
-            ClassNode classNode = new ClassNode();
-            classReader.accept(classNode, 0);
-            patcher.handlePatches(classNode);
-            ClassWriter classWriter = new PatchClassWriter(classReader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-            classNode.accept(classWriter);
-            return classWriter.toByteArray();
-        }
-        return bytes;
+    @Override
+    public <T> T getExtension() {
+        return null;
+    }
+
+    @Override
+    public boolean handlesClass(Type classType, boolean isEmpty) {
+        return patcherMap.containsKey(MappingHandler.INSTANCE.getClassMapping(classType.getClassName()));
     }
 
     /**

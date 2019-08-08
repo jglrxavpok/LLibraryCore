@@ -1,168 +1,92 @@
 buildscript {
-  repositories {
-    jcenter()
-    maven {
-      name = "forge"
-      url = "http://files.minecraftforge.net/maven"
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
+        mavenCentral()
     }
-    maven {
-      name = "gradle"
-      url "https://plugins.gradle.org/m2/"
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
     }
-  }
-  dependencies {
-    classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
-  }
 }
+apply plugin: 'net.minecraftforge.gradle'
+//Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
 
-apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "maven-publish"
+version = '1.0'
+group = 'com.yourname.modid' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'modid'
 
-
-import groovy.json.JsonSlurper
-
-def secretFile = file "secret.json"
-def secret = null
-if (secretFile.exists()) {
-  secretFile.withReader {
-    secret = new JsonSlurper().parse it
-  }
-}
-
-version = "1.0.11-1.12.2"
-group = "net.ilexiconn"
-archivesBaseName = "llibrary-core"
-sourceCompatibility = targetCompatibility = "1.8"
-
-def minecraft_mappings = "stable_39"
-def core_plugin = "net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin"
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-  version = "1.12.2-14.23.5.2795"
-  runDir = "minecraft"
-  mappings = minecraft_mappings
+    // the mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   snapshot are built nightly.
+    // stable_#            stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not always work.
+    // simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: 'snapshot', version: '20180921-1.13'
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+    
+    //accessTransformer = file('my_at.cfg')
 
-  clientJvmArgs = ["-Dfml.coreMods.load=$core_plugin"]
-  serverJvmArgs = ["-Dfml.coreMods.load=$core_plugin"]
-}
-
-jar {
-  manifest {
-    attributes "FMLCorePlugin": core_plugin
-    attributes "Maven-Artifact": "${project.group}:${project.archivesBaseName}:${project.version}"
-    attributes "Timestamp": System.currentTimeMillis()
-  }
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-  classifier = "sources"
-  from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = "javadoc"
-  from javadoc.getDestinationDir()
-}
-
-task signJar(type: SignJar, dependsOn: reobfJar) {
-  if (secret) {
-    keyStore = secret.keyStore
-    alias = secret.keyStoreAlias
-    storePass = secret.keyStorePass
-    keyPass = secret.keyStoreKeyPass
-    inputFile = jar.archivePath
-    outputFile = jar.archivePath
-  }
-}
-
-build.dependsOn signJar
-
-artifacts {
-  archives sourcesJar
-  archives javadocJar
-}
-
-publishing {
-  publications {
-    mavenJava(MavenPublication) {
-      groupId project.group
-      artifactId project.archivesBaseName
-      version project.version
-
-      artifact(signJar.outputFile) {
-        builtBy signJar
-      }
-      artifact sourcesJar { classifier "sources" }
-      artifact javadocJar { classifier "javadoc" }
-    }
-  }
-  repositories {
-    maven {
-      credentials {
-        username secret?.username ?: ""
-        password secret?.password ?: ""
-      }
-      url secret?.url ?: ""
-    }
-  }
-}
-
-task generateMappings {
-  def mappingParts = minecraft_mappings.split("_")
-  def inputFile = new File("${System.properties["user.home"]}/.gradle/caches/minecraft/de/oceanlabs/mcp/mcp_${mappingParts[0]}/${mappingParts[1]}/${project.minecraft.version}/srgs/mcp-srg.srg")
-
-  def outputFile = new File("src/main/resources/llibrary.mappings")
-  if (inputFile.exists()) {
-    Map<String, ClassMapping> class_mappings = [:]
-    inputFile.eachLine { line ->
-      if (!line.startsWith("CL")) {
-        def parts = line.split(" ")
-        if (parts.length >= 2) {
-          def mcp = getName(parts[1])
-          def class_name = getClassName(parts[1])
-          def class_mapping = class_mappings.get(class_name)
-          if (!class_mapping) {
-            class_mapping = new ClassMapping()
-            class_mappings.put(class_name, class_mapping)
-          }
-          if (line.startsWith("FD")) {
-            def srg = getName(parts[2])
-            class_mapping.fields.add("$mcp=$srg")
-          } else if (line.startsWith("MD")) {
-            def desc = parts[2]
-            def srg = getName(parts[3])
-            class_mapping.methods.add("$mcp$desc=$srg")
-          }
+    // default run configurations.
+    // these can be tweaked, removed, or duplicated as needed.
+    runs {
+        client = {
+            // recommended logging data for a userdev environment
+            properties 'forge.logging.markers': 'SCAN,REGISTRIES,REGISTRYDUMP'
+            // recommended logging level for the console
+            properties 'forge.logging.console.level': 'debug'
+            workingDirectory project.file('run').canonicalPath
+            source sourceSets.main
         }
-      }
+        server = {
+            // recommended logging data for a userdev environment
+            properties 'forge.logging.markers': 'SCAN,REGISTRIES,REGISTRYDUMP'
+            // recommended logging level for the console
+            properties 'forge.logging.console.level': 'debug'
+            workingDirectory project.file('run').canonicalPath
+            source sourceSets.main
+        }
     }
-    outputFile.getParentFile().mkdirs()
-    outputFile.createNewFile()
-    new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))).withCloseable { output ->
-      output.writeShort(class_mappings.size())
-      class_mappings.each { name, class_mapping ->
-        output.writeUTF(name)
-        output.writeShort(class_mapping.fields.size())
-        output.writeShort(class_mapping.methods.size())
-        class_mapping.fields.each { output.writeUTF(it) }
-        class_mapping.methods.each { output.writeUTF(it) }
-      }
+}
+
+dependencies {
+    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
+    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
+    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
+    minecraft 'net.minecraftforge:forge:1.13.2-25.0.23'
+
+    // you may put jars on which you depend on in ./libs
+    // or you may define them like so..
+    //compile "some.group:artifact:version:classifier"
+    //compile "some.group:artifact:version"
+
+    // real examples
+    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+    // the 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+    //provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // These dependencies get remapped to your current MCP mappings
+    //deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+    // for more info...
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+}
+
+// Example for how to get properties into the manifest for reading by the runtime..
+jar {
+    manifest {
+        attributes(["Specification-Title": "examplemod",
+                    "Specification-Vendor": "examplemodsareus",
+                    "Specification-Version": "1", // We are version 1 of ourselves
+                    "Implementation-Title": project.name,
+                    "Implementation-Version": "${version}",
+                    "Implementation-Vendor" :"examplemodsareus",
+                    "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")],)
     }
-  }
-}
-
-compileJava.dependsOn generateMappings
-decompileMc.dependsOn generateMappings
-
-static String getClassName(String srg) {
-  return srg.substring(0, srg.lastIndexOf('/'))
-}
-
-static String getName(String srg) {
-  return srg.substring(srg.lastIndexOf('/') + 1, srg.length())
-}
-
-class ClassMapping {
-  public final List<String> fields = []
-  public final List<String> methods = []
 }

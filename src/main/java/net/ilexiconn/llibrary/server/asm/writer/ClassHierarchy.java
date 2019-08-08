@@ -1,7 +1,7 @@
 package net.ilexiconn.llibrary.server.asm.writer;
 
 import net.ilexiconn.llibrary.server.core.plugin.LLibraryPlugin;
-import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -102,7 +102,7 @@ public class ClassHierarchy {
             return rawBytes;
         }
 
-        ClassLoader appClassLoader = Launch.class.getClassLoader();
+        ClassLoader appClassLoader = FMLLoader.class.getClassLoader();
         try (InputStream input = appClassLoader.getResourceAsStream(typePath + ".class")) {
             if (input == null) {
                 return null;
@@ -124,7 +124,7 @@ public class ClassHierarchy {
             return null;
         }
         try {
-            return (Class<?>) findLoadedClass.invoke(Launch.classLoader, name);
+            return (Class<?>) findLoadedClass.invoke(FMLLoader.getLaunchClassLoader(), name);
         } catch (ReflectiveOperationException e) {
             LLibraryPlugin.LOGGER.error("Failed to find loaded class", e);
             return null;

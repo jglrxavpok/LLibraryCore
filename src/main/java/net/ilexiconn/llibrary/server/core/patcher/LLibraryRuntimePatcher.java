@@ -3,22 +3,22 @@ package net.ilexiconn.llibrary.server.core.patcher;
 import net.ilexiconn.llibrary.server.asm.InsnPredicate;
 import net.ilexiconn.llibrary.server.asm.RuntimePatcher;
 import net.minecraft.client.entity.AbstractClientPlayer;
-import net.minecraft.client.model.ModelBase;
-import net.minecraft.client.model.ModelBiped;
-import net.minecraft.client.model.ModelPlayer;
-import net.minecraft.client.renderer.EntityRenderer;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.block.model.IBakedModel;
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.entity.RenderLivingBase;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.entity.RenderPlayer;
+import net.minecraft.client.renderer.entity.model.ModelBase;
+import net.minecraft.client.renderer.entity.model.ModelBiped;
+import net.minecraft.client.renderer.entity.model.ModelPlayer;
+import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.tileentity.TileEntityItemStackRenderer;
-import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.Locale;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
+import net.minecraft.resources.IResourceManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumHandSide;
 import net.minecraftforge.client.ForgeHooksClient;
@@ -109,7 +109,7 @@ public class LLibraryRuntimePatcher extends RuntimePatcher {
                     method.method(INVOKESTATIC, LLibraryHooks.class, "providePerspectiveContext", ItemCameraTransforms.TransformType.class, void.class);
                 }).pop();
 
-        this.patchClass(EntityRenderer.class)
+        this.patchClass(GameRenderer.class)
                 .patchMethod("orientCamera", float.class, void.class)
                 .apply(Patch.REPLACE_NODE, new InsnPredicate.Ldc().cst(4.0F), method -> {
                     method.var(ALOAD, 2);
@@ -119,7 +119,7 @@ public class LLibraryRuntimePatcher extends RuntimePatcher {
                 .apply(Patch.AFTER, data -> data.node.getOpcode() == ASTORE && ((VarInsnNode) data.node).var == 2, method -> {
                     method.var(ALOAD, 0);
                     method.field(GETSTATIC, LLibraryHooks.class, "prevRenderViewDistance", float.class);
-                    method.field(PUTFIELD, EntityRenderer.class, "thirdPersonDistancePrev", float.class);
+                    method.field(PUTFIELD, GameRenderer.class, "thirdPersonDistancePrev", float.class);
                 }).pop();
 
         this.patchClass(RenderLivingBase.class)

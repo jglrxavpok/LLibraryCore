@@ -2,9 +2,9 @@ package net.ilexiconn.llibrary.client.event;
 
 import net.minecraft.client.renderer.entity.RenderLivingBase;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
  * Called when applyRotations is called for an EntityLivingBase
@@ -12,7 +12,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  * @author gegy1000
  * @since 1.7.7
  */
-@SideOnly(Side.CLIENT)
+@OnlyIn(Dist.CLIENT)
 public class ApplyRenderRotationsEvent extends Event {
     protected RenderLivingBase<EntityLivingBase> renderer;
     protected EntityLivingBase entity;

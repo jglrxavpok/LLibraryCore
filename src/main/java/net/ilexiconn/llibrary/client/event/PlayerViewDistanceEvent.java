@@ -1,9 +1,9 @@
 package net.ilexiconn.llibrary.client.event;
 
 import net.minecraft.entity.Entity;
-import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
  * Event called for adjustment of the 3rd person view distance
@@ -11,7 +11,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  * @author gegy1000
  * @since 1.7.7
  */
-@SideOnly(Side.CLIENT)
+@OnlyIn(Dist.CLIENT)
 public class PlayerViewDistanceEvent extends Event {
     private final Entity renderViewEntity;
     private final float partialTicks;
